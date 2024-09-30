@@ -35,13 +35,14 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(pico-multi-monitor-ambilight pico-multi-monitor-ambilight.c )
+add_executable(pico-multi-monitor-ambilight 
+    src/main.c)
 
 pico_set_program_name(pico-multi-monitor-ambilight "pico-multi-monitor-ambilight")
 pico_set_program_version(pico-multi-monitor-ambilight "0.1")
 
 # Generate PIO header
-pico_generate_pio_header(pico-multi-monitor-ambilight ${CMAKE_CURRENT_LIST_DIR}/blink.pio)
+pico_generate_pio_header(pico-multi-monitor-ambilight ${CMAKE_CURRENT_LIST_DIR}/src/blink.pio)
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(pico-multi-monitor-ambilight 0)
