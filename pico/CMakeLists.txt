@@ -36,17 +36,19 @@ pico_sdk_init()
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(pico-multi-monitor-ambilight 
-    src/main.c)
+    src/main.c
+    src/ws2812.c
+    )
 
 pico_set_program_name(pico-multi-monitor-ambilight "pico-multi-monitor-ambilight")
 pico_set_program_version(pico-multi-monitor-ambilight "0.1")
 
 # Generate PIO header
-pico_generate_pio_header(pico-multi-monitor-ambilight ${CMAKE_CURRENT_LIST_DIR}/src/blink.pio)
+pico_generate_pio_header(pico-multi-monitor-ambilight ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(pico-multi-monitor-ambilight 0)
-pico_enable_stdio_usb(pico-multi-monitor-ambilight 0)
+pico_enable_stdio_usb(pico-multi-monitor-ambilight 1)
 
 # Add the standard library to the build
 target_link_libraries(pico-multi-monitor-ambilight
@@ -55,14 +57,14 @@ target_link_libraries(pico-multi-monitor-ambilight
 # Add the standard include files to the build
 target_include_directories(pico-multi-monitor-ambilight PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/include
   ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
 )
 
 # Add any user requested libraries
 target_link_libraries(pico-multi-monitor-ambilight 
-        hardware_dma
+        pico_stdlib
         hardware_pio
-        
         )
 
 pico_add_extra_outputs(pico-multi-monitor-ambilight)

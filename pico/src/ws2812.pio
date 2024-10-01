@@ -1,0 +1,31 @@
+.program ws2812
+.side_set 1
+
+.define public T1 3 ; 3 cycles
+.define public T2 3 ; 3 cycles
+.define public T3 4 ; 4 cycles
+; -----------------------------
+;                    10 cycles in total 
+
+.lang_opt python sideset_init = pico.PIO.OUT_HIGH
+.lang_opt python out_init     = pico.PIO.OUT_HIGH
+.lang_opt python out_shiftdir = 1
+
+.wrap_target
+bitloop:
+    ; out <destination> <bit_count> - takes some bits (in this case '1') from the Output Shift Register (OSR) and writes them somewherer (to 'x') 
+    ; side - defined in c-sdk program what it does, in this case it drives value ('0') to the pin configured in c-sdk
+    ; [T3 - 1] - delay [N+1] cycles before moving on to the next instruction. In that case we drive low ('0') to the pin for [(T3-1)+1] cycles because [T3-1] is N. (END EITHER 1 OR 0 CODE (weird looping but works))
+    out x, 1    side 0 [T3 - 1] ; Side-set still takes place when instruction stalls 
+    ; jmp <condition> <label> - jump to the label "do_zero" if the least significant bit of x is 0. If the LSB of 'x' is 1 just continue down like normal if statement would, to the 'do_one' label.
+    ; side - drive value ('1') to the pin for T1 number of cycles. (BEGIN EITHER 1 OR 0 CODE)
+    jmp !x do_zero side 1 [T1 - 1] ; Branch on the bit we shifted out. Positive pulse
+do_one:
+    ; jmp bitloop to unconditionally go back to bitloop label.
+    ; side - drive the value ('1') to the pin for T2 number of cycles. (CONTINUE 1 CODE)
+    jmp bitloop side 1 [T2 - 1] ; Continue driving high, for a long pulse
+do_zero:
+    ; nop - do nothing for one cycle (no operation).
+    ; side - drive the value ('0') to the pin for T2 number of cycles. (CONTINUE 0 CODE)
+    nop side 0 [T2 - 1] ; Or drive low, for a short pulse
+.wrap
