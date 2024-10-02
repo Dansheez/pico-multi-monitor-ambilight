@@ -16,6 +16,6 @@ static uint32_t urgbw_u32(uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
         ((uint32_t)w << 0);
 }
 
-void ws2812_pio_dma_init(int pin, float freq);
+void ws2812_init(int pin, float freq);
 void ws2812_set_color(uint32_t led, uint32_t led_values);
-void ws2812_dma_update();
+bool ws2812_dma_update_callback(__unused struct repeating_timer *t);

@@ -24,27 +24,10 @@ const uint8_t gamma8[] = {
   177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
   215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
 
-bool repeating_timer_callback(__unused struct repeating_timer *t){
-    ws2812_dma_update();
-    return true;
-}
-
 int main()
 {
     stdio_init_all();
-    ws2812_pio_dma_init(WS2812_PIN, 800000); // 800 kHz freq for WS2812
-
-    double* delay_s = (double*)malloc(sizeof(double));
-    if (delay_s != NULL) *delay_s = 1/(double)LED_FREQ;
-
-    struct repeating_timer timer;
-    add_repeating_timer_us(
-        -*delay_s * 1000000,
-        repeating_timer_callback,
-        NULL,
-        &timer
-    );
-    free(delay_s);
+    ws2812_init(WS2812_PIN, 800000); // 800 kHz freq for WS2812
 
     while (true) {
         for (int led=0; led<LED_N; led++) {

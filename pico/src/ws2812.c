@@ -1,17 +1,20 @@
+#include "pico/stdlib.h"
+#include "hardware/pio.h"
+#include "hardware/dma.h"
+#include "hardware/clocks.h"
+
 #include <stdio.h>
 
 #include "ws2812.h"
 #include "ws2812.pio.h"
 #include "config.h"
 
-#include "hardware/pio.h"
-#include "hardware/dma.h"
-#include "hardware/clocks.h"
-
 #define LED_BUFFER_SIZE LED_N
 // only visible in this file
 static uint32_t led_buffer[LED_BUFFER_SIZE];
 static int dma_chan;
+// visible globaly
+struct repeating_timer dma_trigger_timer;
 
 static void ws2812_program_init(PIO pio, uint sm, uint offset, uint pin, float freq, bool rgbw) {
     /*
@@ -51,7 +54,7 @@ static void ws2812_program_init(PIO pio, uint sm, uint offset, uint pin, float f
     pio_sm_set_enabled(pio, sm, true);  // And make it go now!
 }
 
-void ws2812_pio_dma_init(int pin, float freq) {
+void ws2812_init(int pin, float freq) {
     // PIO machine init
     PIO pio = pio0;
     int sm = 0;
@@ -77,6 +80,16 @@ void ws2812_pio_dma_init(int pin, float freq) {
     for (int i = 0; i < LED_BUFFER_SIZE; i++) {
         led_buffer[i] = 0x00;
     }
+    // TIMER init
+    double delay_s = 1/(double)LED_FREQ;
+
+
+    add_repeating_timer_us(
+        -delay_s * 1000000,
+        ws2812_dma_update_callback,
+        NULL,
+        &dma_trigger_timer
+    );
 }
 
 void ws2812_set_color(uint32_t led, uint32_t led_values) {
@@ -85,7 +98,7 @@ void ws2812_set_color(uint32_t led, uint32_t led_values) {
     }
 }
 
-void ws2812_dma_update() {
+bool ws2812_dma_update_callback(__unused struct repeating_timer *t) {
     dma_channel_wait_for_finish_blocking(dma_chan);
     dma_channel_set_read_addr(dma_chan, led_buffer, true);
 }
