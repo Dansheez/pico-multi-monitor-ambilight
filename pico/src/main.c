@@ -27,7 +27,7 @@ const uint8_t gamma8[] = {
 int main()
 {
     stdio_init_all();
-    ws2812_init(WS2812_PIN, 800000);
+    ws2812_pio_dma_init(WS2812_PIN, 800000); // 800 kHz freq for WS2812
 
     while (true) {
         for (int led=0; led<LED_N; led++) {
@@ -36,12 +36,12 @@ int main()
             uint8_t b = gamma8[rand() % 256];
             #if IS_RGBW
             uint8_t w = gamma8[rand() % 256];
-            ws2812_update(urgbw_u32(r, g, b, w));
+            ws2812_set_color(led, urgbw_u32(r, g, b, w));
             #else
-            ws2812_update(urgb_u32(r, g, b)); 
+            ws2812_set_color(led, urgb_u32(r, g, b));
             #endif
         }
-
+        ws2812_dma_update();
         sleep_ms(1000);
     }
 }

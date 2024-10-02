@@ -1,9 +1,17 @@
+#include <stdio.h>
+
 #include "ws2812.h"
 #include "ws2812.pio.h"
 #include "config.h"
 
 #include "hardware/pio.h"
+#include "hardware/dma.h"
 #include "hardware/clocks.h"
+
+#define LED_BUFFER_SIZE LED_N
+// only visible in this file
+static uint32_t led_buffer[LED_BUFFER_SIZE];
+static int dma_chan;
 
 static void ws2812_program_init(PIO pio, uint sm, uint offset, uint pin, float freq, bool rgbw) {
     /*
@@ -43,17 +51,42 @@ static void ws2812_program_init(PIO pio, uint sm, uint offset, uint pin, float f
     pio_sm_set_enabled(pio, sm, true);  // And make it go now!
 }
 
-void ws2812_init(int pin, float freq) {
+void ws2812_pio_dma_init(int pin, float freq) {
     // PIO machine init
     PIO pio = pio0;
     int sm = 0;
     uint offset = pio_add_program(pio, &ws2812_program);
     ws2812_program_init(pio, sm, offset, pin, freq, IS_RGBW);
+    
+    // DMA init
+    dma_chan = dma_claim_unused_channel(true);
+    dma_channel_config c = dma_channel_get_default_config(dma_chan);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
+    channel_config_set_read_increment(&c, true);
+    channel_config_set_dreq(&c, pio_get_dreq(pio, sm, true));
+    
+    dma_channel_configure(
+        dma_chan,
+        &c,
+        &pio->txf[sm],
+        led_buffer,
+        LED_BUFFER_SIZE,
+        false
+    );
+    // LED buffer init
+    for (int i = 0; i < LED_BUFFER_SIZE; i++) {
+        led_buffer[i] = 0x00;
+    }
 }
 
-void ws2812_update(uint32_t pixel_grb) {
-    #if IS_RGBW
-    uint32_t pixel_grb = pixel_grb << 8u;
-    #endif
-    pio_sm_put_blocking(pio0, 0, pixel_grb);
+void ws2812_set_color(uint32_t led, uint32_t led_values) {
+    if (led < LED_N) {
+        led_buffer[led] = led_values;
+    }
+}
+
+void ws2812_dma_update() {
+    dma_channel_start(dma_chan);
+    dma_channel_wait_for_finish_blocking(dma_chan);
+    dma_channel_set_read_addr(dma_chan, led_buffer, false);
 }

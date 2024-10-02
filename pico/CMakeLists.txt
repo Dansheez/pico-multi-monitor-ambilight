@@ -64,6 +64,8 @@ target_include_directories(pico-multi-monitor-ambilight PRIVATE
 # Add any user requested libraries
 target_link_libraries(pico-multi-monitor-ambilight 
         pico_stdlib
+        pico_cyw43_arch_none
+        hardware_dma
         hardware_pio
         )
 
