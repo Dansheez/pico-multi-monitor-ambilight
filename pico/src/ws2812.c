@@ -86,7 +86,6 @@ void ws2812_set_color(uint32_t led, uint32_t led_values) {
 }
 
 void ws2812_dma_update() {
-    dma_channel_start(dma_chan);
     dma_channel_wait_for_finish_blocking(dma_chan);
-    dma_channel_set_read_addr(dma_chan, led_buffer, false);
+    dma_channel_set_read_addr(dma_chan, led_buffer, true);
 }
