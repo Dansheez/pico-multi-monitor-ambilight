@@ -1,44 +1,49 @@
+import mss
+from time import sleep, time
+
+import include.capture_screen as capture_screen
 import include.pc_communication as pc_communication
-import time 
-
-# TODO: move this to config
-
-# Port for communication with Pico. Check the correct port from your system (e.g., COM3 on Windows or /dev/ttyUSB0 on Linux/Mac).
-PICO_PORT = "/dev/tty.usbmodem212201"
-# Baud rate for serial communication with Pico.
-BAUD_RATE = 115200
-TIMEOUT_DURATION = 2  # Adjust as needed
+import include.config as config
 
 def main():
-    pico_serial = pc_communication.init_serial(PICO_PORT, BAUD_RATE)
+    #setup
+    capture_screen.get_screen_capture_config()
+    pico_serial = pc_communication.init_serial()
 
-    while not pico_serial.is_open: print("Waiting for serial port...")
-    
-    try:
-        while True:
-            message = [0x55, 0x0A, 0x01, 0x02, 0x03, 0x04, 0x55]
-            print(f"Sending: {message}")
-            pc_communication.send_data(pico_serial, message)
+    while not pico_serial.is_open: 
+        print("Waiting for serial port...")
+        sleep(0.5)
 
-            # Start the timeout timer
-            start_time = time.time()
-
-            # Wait for response until the timeout is reached
-            while time.time() - start_time < TIMEOUT_DURATION:
+    # main loop
+    with mss.mss() as sct:
+        try:
+            while True:
+                message = capture_screen.compose_message_from_screen_data(sct)
+                print(f"Sending: {message}")
                 response = pc_communication.receive_data(pico_serial)
-                if response:
-                    print(f"Response: {response}")
-                    break  # Break if a response is received
-            
-            if not response:  # If no response was received
-                print("No response received within timeout period.")
+                # Start the timeout timer
+                start_time = time()
 
-            time.sleep(1)  # Wait before sending data again
+                # Wait for response until the timeout is reached
+                while True:
+                    response = pc_communication.receive_data(pico_serial) 
+                    if response:
+                        print(f"Response: {response}")
+                        break  # Break if a response is received
+                    if (time() - start_time) >= config.TIMEOUT_PERIOD:
+                        print("No response received within timeout period.")
+                        break
 
-    except KeyboardInterrupt:
-        pass
-    finally:
-        pc_communication.close_serial(pico_serial)
+                sleep(0.5)
+
+        except KeyboardInterrupt:
+            print("Exiting...")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        finally:
+            print("Closing...")
+            sct.close()
+            pc_communication.close_serial(pico_serial)
 
 if __name__ == "__main__":
     main()

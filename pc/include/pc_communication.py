@@ -1,7 +1,11 @@
 import serial
 
-def init_serial(serial_port, baud_rate):
-    return serial.Serial(serial_port, baud_rate)
+import include.config as config
+
+def init_serial():
+    PICO_PORT = config.PICO_PORT
+    BAUD_RATE = config.BAUD_RATE
+    return serial.Serial(PICO_PORT, BAUD_RATE)
 
 def close_serial(serial_port):
     serial_port.close()
