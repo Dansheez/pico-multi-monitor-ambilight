@@ -2,7 +2,7 @@ import mss
 import numpy as np
 from fast_colorthief import get_dominant_color
 
-import config
+import include.config as config
 
 def get_screen_capture_config()->None:
     global MONITOR_COUNT, AREA_WIDTH, LED_CONNECTION_LAYOUT, LED_COUNT, LED_MAP

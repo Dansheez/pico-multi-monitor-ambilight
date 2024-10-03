@@ -21,4 +21,3 @@ LED_COUNT = [
     {"left": 1, "bottom": 2, "right": 1, "top": 2}, # monitor 1
     # additional monitors here
 ]
-

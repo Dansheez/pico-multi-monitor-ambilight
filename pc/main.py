@@ -1,15 +1,15 @@
 import mss
-from capture_screen import get_screen_capture_config, compose_message_from_screen_data
+import include.capture_screen as capture_screen
 
 def main():
     #setup
-    get_screen_capture_config()
+    capture_screen.get_screen_capture_config()
 
     # main loop
     with mss.mss() as sct:
         try:
             while True:
-                message = compose_message_from_screen_data(sct)
+                message = capture_screen.compose_message_from_screen_data(sct)
                 print(message)
         except KeyboardInterrupt:
             print("Exiting...")
