@@ -37,8 +37,8 @@ pico_sdk_init()
 
 add_executable(pico-multi-monitor-ambilight 
     src/main.c
-    src/ws2812.c
-    )
+    src/pico_communication.c
+    src/ws2812.c)
 
 pico_set_program_name(pico-multi-monitor-ambilight "pico-multi-monitor-ambilight")
 pico_set_program_version(pico-multi-monitor-ambilight "0.1")

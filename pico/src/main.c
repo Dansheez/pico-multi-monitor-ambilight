@@ -1,9 +1,24 @@
 #include "pico/stdlib.h"
-#include <stdint.h>
-#include <stdlib.h>
+
+#include "tusb.h"
 
 #include "ws2812.h"
+#include "pico_communication.h"
 #include "config.h"
+
+// TODO: move this to config
+#if IS_RGBW
+#define RECEIVE_BUFFER_SIZE LED_N*4+6
+uint8_t led_loop_increment = 4; // TODO: don't do that 
+#else
+#define RECEIVE_BUFFER_SIZE LED_N*3+6
+uint8_t led_loop_increment = 3;
+#endif
+#define SEND_BUFFER_SIZE 15 // TODO: verify if this is enough
+
+uint8_t* receive_buffer;
+uint8_t* send_buffer;
+uint16_t received_bytes = 0;
 
 #define WS2812_PIN 2
 const uint8_t gamma8[] = {
@@ -26,21 +41,46 @@ const uint8_t gamma8[] = {
 
 int main()
 {
-    stdio_init_all();
-    ws2812_init(WS2812_PIN, 800000); // 800 kHz freq for WS2812
+    receive_buffer = init_buffer(RECEIVE_BUFFER_SIZE);
+    send_buffer = init_buffer(SEND_BUFFER_SIZE); // mainly for acknowledgement signal and error codes
 
+    stdio_init_all();
+    ws2812_init(WS2812_PIN, 800000);
+    tusb_init();
+    
     while (true) {
-        for (int led=0; led<LED_N; led++) {
-            uint8_t r = gamma8[rand() % 256];
-            uint8_t g = gamma8[rand() % 256];
-            uint8_t b = gamma8[rand() % 256];
-            #if IS_RGBW
-            uint8_t w = gamma8[rand() % 256];
-            ws2812_set_color(led, urgbw_u32(r, g, b, w));
-            #else
-            ws2812_set_color(led, urgb_u32(r, g, b));
-            #endif
-        }
-        sleep_ms(100);
+        tud_task(); // USB device task
+        if (received_bytes > 0) {
+            uint8_t verify_code = verify_received_data(receive_buffer, received_bytes);
+            if(verify_code) { // Something went wrong send back an error message
+                int message_length = snprintf(send_buffer, SEND_BUFFER_SIZE, "Error code: %d", verify_code);
+                send_data(send_buffer, message_length);
+                }
+            else { // Everything went well send back the ACK
+                send_buffer[0] = '\n';
+                send_data(send_buffer, 1);
+                // set leds
+                uint32_t led = 0;
+                for (int i=3; i<received_bytes; i+=led_loop_increment) {
+                    #if IS_RGBW
+                    uint32_t led_values = urgbw_u32(gamma8[receive_buffer[i+3]], gamma8[receive_buffer[i+2]], gamma8[receive_buffer[i+1]], gamma8[receive_buffer[i]]);
+                    #else
+                    uint32_t led_values = urgb_u32(gamma8[receive_buffer[i+2]], gamma8[receive_buffer[i+1]], gamma8[receive_buffer[i]]);
+                    #endif
+                    ws2812_set_color(led, led_values);
+                    led++;
+                }
+            }
+            // reset buffers
+            received_bytes = 0;
+            clear_buffer(receive_buffer, RECEIVE_BUFFER_SIZE);
+            clear_buffer(send_buffer, SEND_BUFFER_SIZE);
+        } 
+       
     }
+}
+
+void tud_cdc_rx_cb(uint8_t itf) {
+    // This callback is called when data is received
+    received_bytes = receive_data(receive_buffer, RECEIVE_BUFFER_SIZE);
 }
