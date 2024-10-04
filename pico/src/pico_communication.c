@@ -29,3 +29,18 @@ void send_data(uint8_t* send_buffer, int send_buffer_size) {
        clear_buffer(send_buffer, send_buffer_size);
    }
 }
+
+uint8_t verify_received_data(uint8_t* receive_buffer, int bytes_read) {
+    // TODO: add blockID support
+    if ((receive_buffer[0] != 0x55) && (receive_buffer[bytes_read-1] != 0x55)) {return 1;} // check header and trailer
+    if (receive_buffer[2]!=bytes_read-5) {return 2;} // check payload_length
+    // checksum
+    uint16_t checksum = 0;
+    for (int i=1; i<bytes_read-2; i++) {
+        checksum += receive_buffer[i];
+    }
+    checksum = checksum%256;
+    if (checksum!=receive_buffer[bytes_read-2]) {
+        return checksum;} // check checksum
+    return 0;
+}

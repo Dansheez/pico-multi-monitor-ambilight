@@ -106,7 +106,7 @@ def process_screenshot(screenshot: np.array, led_strip: dict)->list:
         led_colors.extend([int(value) for value in section_dominant_color[:3]])
     return led_colors
 
-def compose_message_from_screen_data(sct: mss)->list:
+def compose_screen_data(sct: mss)->list:
     message = []
     # for each side
     for led_strip in LED_MAP:

@@ -1,9 +1,18 @@
 import mss
 from time import sleep, time
+import signal
+import sys
 
 import include.capture_screen as capture_screen
 import include.pc_communication as pc_communication
 import include.config as config
+
+def handle_sigterm(signum, frame):
+    raise Exception("SIGTERM received. Exiting...") 
+
+# Register the signal handler for SIGTERM
+signal.signal(signal.SIGTERM, handle_sigterm)
+
 
 def main():
     #setup
@@ -18,8 +27,8 @@ def main():
     with mss.mss() as sct:
         try:
             while True:
-                message = capture_screen.compose_message_from_screen_data(sct)
-                print(f"Sending: {message}")
+                message = capture_screen.compose_screen_data(sct)
+                pc_communication.send_data(pico_serial, message)
                 response = pc_communication.receive_data(pico_serial)
                 # Start the timeout timer
                 start_time = time()
@@ -30,9 +39,10 @@ def main():
                     if response:
                         print(f"Response: {response}")
                         break  # Break if a response is received
-                    if (time() - start_time) >= config.TIMEOUT_PERIOD:
+                    if (time() - start_time) >= config.TIMEOUT_DURATION:
                         print("No response received within timeout period.")
                         break
+
 
                 sleep(0.5)
 
