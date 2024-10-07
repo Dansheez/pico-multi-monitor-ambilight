@@ -3,7 +3,6 @@ from time import sleep, time
 import signal
 import sys
 import asyncio
-import time
 
 import include.capture_screen as capture_screen
 import include.pc_communication as pc_communication
@@ -18,25 +17,16 @@ signal.signal(signal.SIGTERM, handle_sigterm)
 
 async def capture_screen_job(sct: mss, delay: float, pico_serial):
     while True:
-        start_time = time.time()
-        message = capture_screen.compose_screen_data(sct)
-        pc_communication.send_data(pico_serial, message)
-
-        # Wait for response until the timeout is reached
-        while True:
-            response = pc_communication.receive_data(pico_serial) 
-            if response:
-                print(f"Response: {response}")
-                break  # Break if a response is received
-            elif (time.time() - start_time) >= delay:
-                print("No response received within timeout period.")
-                break
-        await asyncio.sleep(max(0, delay - (time.time() - start_time)))
+        start_time = time()
+        screen_data = capture_screen.compose_screen_data(sct)
+        ret = pc_communication.data_send_loop(pico_serial, screen_data)
+        # print(f"Data send loop exit result: {ret}")
+        await asyncio.sleep(max(0, delay - (time() - start_time)))
 
 async def main():
     #setup
     capture_screen.get_screen_capture_config()
-    pico_serial = pc_communication.init_serial()
+    pico_serial = pc_communication.init_serial_connection()
 
     while not pico_serial.is_open: 
         print("Waiting for serial port...")

@@ -10,6 +10,7 @@
 #include "config.h"
 
 #define LED_BUFFER_SIZE LED_N
+
 // only visible in this file
 static uint32_t led_buffer[LED_BUFFER_SIZE];
 static int dma_chan;
@@ -92,10 +93,24 @@ void ws2812_init(int pin, float freq) {
     );
 }
 
-void ws2812_set_color(uint32_t led, uint32_t led_values) {
+uint32_t ws2812_led_set_color(uint32_t led, uint32_t led_values) {
     if (led < LED_N) {
         led_buffer[led] = led_values;
     }
+    return led;
+}
+
+uint32_t ws2812_set_color_from_buffer(uint32_t start_led, uint8_t* receive_buffer, int bytes_read) {
+    uint32_t led_count = start_led;
+    for (int i=3; i<bytes_read; i+=(IS_RGBW?4:3)) {
+        #if IS_RGBW
+        led_count = ws2812_led_set_color(led_count, urgbw_u32(gamma8[receive_buffer[i+3]], gamma8[receive_buffer[i+2]], gamma8[receive_buffer[i+1]], gamma8[receive_buffer[i]]));
+        #else
+        led_count = ws2812_led_set_color(led_count, urgb_u32(gamma8[receive_buffer[i+2]], gamma8[receive_buffer[i+1]], gamma8[receive_buffer[i]]));
+        #endif
+        led_count++;
+    }
+    return led_count;
 }
 
 bool ws2812_dma_update_callback(__unused struct repeating_timer *t) {

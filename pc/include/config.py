@@ -25,6 +25,9 @@ LED_COUNT = [
     # additional monitors here
 ]
 
+# If using RGBW instead of RGB, set this to 1
+IS_RGBW = 0
+
 # **COMMMUNICATION CONFIGURATION**
 # Serial port for communication with Pico. Check the correct port from your system (e.g., COM3 on Windows or /dev/ttyUSB0 on Linux/Mac).
 PICO_PORT = "/dev/tty.usbmodem212401"
