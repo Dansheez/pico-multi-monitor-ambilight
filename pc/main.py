@@ -2,6 +2,8 @@ import mss
 from time import sleep, time
 import signal
 import sys
+import asyncio
+import time
 
 import include.capture_screen as capture_screen
 import include.pc_communication as pc_communication
@@ -14,7 +16,24 @@ def handle_sigterm(signum, frame):
 signal.signal(signal.SIGTERM, handle_sigterm)
 
 
-def main():
+async def capture_screen_job(sct: mss, delay: float, pico_serial):
+    while True:
+        start_time = time.time()
+        message = capture_screen.compose_screen_data(sct)
+        pc_communication.send_data(pico_serial, message)
+
+        # Wait for response until the timeout is reached
+        while True:
+            response = pc_communication.receive_data(pico_serial) 
+            if response:
+                print(f"Response: {response}")
+                break  # Break if a response is received
+            elif (time.time() - start_time) >= delay:
+                print("No response received within timeout period.")
+                break
+        await asyncio.sleep(max(0, delay - (time.time() - start_time)))
+
+async def main():
     #setup
     capture_screen.get_screen_capture_config()
     pico_serial = pc_communication.init_serial()
@@ -24,36 +43,16 @@ def main():
         sleep(0.5)
 
     # main loop
-    with mss.mss() as sct:
-        try:
-            while True:
-                message = capture_screen.compose_screen_data(sct)
-                pc_communication.send_data(pico_serial, message)
-                response = pc_communication.receive_data(pico_serial)
-                # Start the timeout timer
-                start_time = time()
-
-                # Wait for response until the timeout is reached
-                while True:
-                    response = pc_communication.receive_data(pico_serial) 
-                    if response:
-                        print(f"Response: {response}")
-                        break  # Break if a response is received
-                    if (time() - start_time) >= config.TIMEOUT_DURATION:
-                        print("No response received within timeout period.")
-                        break
-
-
-                sleep(0.5)
-
-        except KeyboardInterrupt:
-            print("Exiting...")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-        finally:
-            print("Closing...")
-            sct.close()
-            pc_communication.close_serial(pico_serial)
+    try:
+        with mss.mss() as sct:
+            delay = 1/config.TARGET_FPS
+            await capture_screen_job(sct, delay, pico_serial) 
+    except KeyboardInterrupt:
+        print("Exiting...")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        sct.close()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
