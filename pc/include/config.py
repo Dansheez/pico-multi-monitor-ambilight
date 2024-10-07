@@ -18,9 +18,12 @@ LED_CONNECTION_LAYOUT = [
 # (MATCH WITH LED_LAYOUT ORDER)
 # TODO: map_led_sides to work undependently from LED_LAYOUT 
 LED_COUNT = [
-    {"left": 1, "bottom": 2, "right": 1, "top": 2}, # monitor 1
+    {"left": 100, "bottom": 200, "right": 100, "top": 200}, # monitor 1
     # additional monitors here
 ]
+
+# If using RGBW instead of RGB, set this to 1
+IS_RGBW = 0
 
 # **COMMMUNICATION CONFIGURATION**
 # Serial port for communication with Pico. Check the correct port from your system (e.g., COM3 on Windows or /dev/ttyUSB0 on Linux/Mac).

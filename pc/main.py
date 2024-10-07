@@ -13,11 +13,10 @@ def handle_sigterm(signum, frame):
 # Register the signal handler for SIGTERM
 signal.signal(signal.SIGTERM, handle_sigterm)
 
-
 def main():
     #setup
     capture_screen.get_screen_capture_config()
-    pico_serial = pc_communication.init_serial()
+    pico_serial = pc_communication.init_serial_connection()
 
     while not pico_serial.is_open: 
         print("Waiting for serial port...")
@@ -27,23 +26,10 @@ def main():
     with mss.mss() as sct:
         try:
             while True:
-                message = capture_screen.compose_screen_data(sct)
-                pc_communication.send_data(pico_serial, message)
-                response = pc_communication.receive_data(pico_serial)
-                # Start the timeout timer
-                start_time = time()
-
-                # Wait for response until the timeout is reached
-                while True:
-                    response = pc_communication.receive_data(pico_serial) 
-                    if response:
-                        print(f"Response: {response}")
-                        break  # Break if a response is received
-                    if (time() - start_time) >= config.TIMEOUT_DURATION:
-                        print("No response received within timeout period.")
-                        break
-
-
+                index_counter = 0
+                blockID = 0x00
+                screen_data = capture_screen.compose_screen_data(sct)
+                print(f"Data send loop exit result: {pc_communication.data_send_loop(pico_serial, screen_data)}")
                 sleep(0.5)
 
         except KeyboardInterrupt:
@@ -53,7 +39,7 @@ def main():
         finally:
             print("Closing...")
             sct.close()
-            pc_communication.close_serial(pico_serial)
+            pc_communication.close_serial_connection(pico_serial)
 
 if __name__ == "__main__":
     main()
